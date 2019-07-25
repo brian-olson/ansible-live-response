@@ -1,0 +1,59 @@
+---
+# tasks file for DFIR-respond
+
+- name: Upgrade to latest version of all packages
+  become: true
+  package:
+    name: "{{ item }}"
+    update_cache: yes
+    state: latest
+  with_items:
+    - default-jdk
+    - apache2
+    - mysql-server
+    - php
+    - php-mysql
+  tags: phase_1
+
+- name: Push an updated configuration file based on a template (enable logs, disable manager)
+  become: yes
+  template:
+    src: index.html.template
+    dest: /var/www/html/index.html
+    owner: www-data
+    group: www-data
+    mode: '0644'
+  notify: restart_apache
+  tags: phase_1
+
+- name: Remove known malware
+  file:
+    state: absent
+    path: /var/www/html/"{{ item }}"
+  with_items:
+    - malware.html
+    - metasploit.html
+    - poc.html
+    - badness.html
+  notify: restart_apache
+  tags: phase_2
+
+- name: Delete unauthorized users
+  user:
+    name: "{{ item }}"
+    state: absent
+    remove: yes
+  with_items:
+    - hacker
+    - pwnd
+  tags: phase_2
+
+### KILL PROCESSES ###
+- name: Kill running processes
+  shell: "kill -9 {{ item }}"
+  with_items:
+    - nmap
+    - bot
+    - worm
+  ignore_errors: yes
+  tags: phase_2

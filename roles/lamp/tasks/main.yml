@@ -1,0 +1,42 @@
+---
+- name: Install LAMP packages
+  package:
+    name: "{{ item }}"
+    update_cache: yes
+    state: latest
+  with_items:
+    - apache2
+    - mysql-server
+    - php
+    - php-mysql
+  become: true
+
+- name: Start apache service
+  service:
+    name: apache2
+    state: started
+    enabled: yes
+  become: true
+
+- name: Start mysql service
+  service:
+    name: mysql
+    state: started
+    enabled: yes
+  become: true
+
+- name: Create target directory
+  file:
+    path: /var/www/html
+    state: directory
+    mode: 0655
+  become: yes
+
+- name: Deploy index.html
+  template:
+    src: index.html.template
+    dest: /var/www/html/index.html
+    owner: www-data
+    group: www-data
+    mode: '0644'
+  become: true

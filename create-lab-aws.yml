@@ -1,0 +1,67 @@
+---
+# tasks file for create-lab-aws
+
+- name: Provision an EC2 Instance
+  hosts: all
+  connection: local
+  gather_facts: False
+  tags: provisioning
+  # Necessary Variables for creating/provisioning the EC2 Instance
+  vars:
+    instance_type: t2.micro
+    security_group: "Web Server" # Change the security group name here
+    image: ami-0a313d6098716f372 # This is an AMI i created myself
+    keypair: new-air # This is one of my keys that i already have in AWS
+    region: us-east-1 # Change the Region
+    subnet: subnet-fb14c38c # Change the subnet ID
+    count: 5
+    spot_price: "0.01"
+    spot_launch_group: ansible-lab
+
+# Task that will be used to Launch/Create an EC2 Instance
+  tasks:
+    - name: Create a security group
+      local_action:
+        module: ec2_group
+        name: "{{ security_group }}"
+        description: Ansible security Group for webserver Servers
+        region: "{{ region }}"
+        rules:
+          - proto: tcp
+            from_port: 22
+            to_port: 22
+            cidr_ip: 0.0.0.0/0
+          - proto: tcp
+            from_port: 80
+            to_port: 80
+            cidr_ip: 0.0.0.0/0
+          - proto: tcp
+            from_port: 443
+            to_port: 443
+            cidr_ip: 0.0.0.0/0
+#        rules_egress:
+#          - proto: all
+#            cidr_ip: 0.0.0.0/0
+      register: basic_firewall
+
+    - name: Launch the new EC2 Instance
+      local_action: ec2
+                    group={{ security_group }}
+                    instance_type={{ instance_type }}
+                    image={{ image }}
+                    wait=true
+                    region={{ region }}
+                    keypair={{ keypair }}
+                    count={{ count }}
+                    vpc_subnet_id={{ subnet }}
+                    spot_price={{ spot_price }}
+                    spot_wait_timeout=600
+                    spot_launch_group={{ spot_launch_group }}
+                    instance_initiated_shutdown_behavior=terminate
+      register: ec2
+
+#    - name: Add the newly created EC2 instance(s) to the local host group (located inside the directory)
+#      local_action: lineinfile
+#                    dest={{ roles_path }}
+#                    regexp={{ item.public_ip }}
+#      with_items: ec2.instances

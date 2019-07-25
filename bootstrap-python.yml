@@ -1,0 +1,10 @@
+---
+# Credit to https://blog.ruanbekker.com/blog/2018/10/31/how-to-bootstrap-nodes-with-python-using-ansible/
+- hosts: all
+  gather_facts: False
+  become: true
+  become_user: root
+
+  tasks:
+  - name: install python
+    raw: test -e /usr/bin/python || ( apt update && apt install python -y )

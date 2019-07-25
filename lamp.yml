@@ -1,0 +1,9 @@
+---
+- hosts: all
+  gather_facts: no
+  roles:
+    - common
+
+- hosts: webservers
+  roles:
+    - lamp

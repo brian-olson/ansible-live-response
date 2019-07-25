@@ -1,0 +1,8 @@
+---
+- hosts: webservers
+  become: yes
+  become_user: root
+  roles:
+    - common
+    - lamp
+#  serial: 2

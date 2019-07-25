@@ -1,0 +1,8 @@
+---
+# handlers file for DFIR-respond
+
+- name: restart_apache
+  become: yes
+  service:
+    name: apache2
+    state: restarted

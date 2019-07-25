@@ -1,0 +1,141 @@
+---
+# tasks file for DFIR-triage
+
+- name: Make evidence collection directory ($pwd/artifacts)
+  local_action:
+    module: file
+    path: artifacts/{{ inventory_hostname }}
+    state: directory
+    recurse: yes
+
+### PROCESS DATA ###
+- name: Get a list of all running processes from remote hosts
+  shell: ps -ef
+  register: ps_result
+
+- name: Write remote process collection results to local artifacts
+  local_action:
+    module: copy
+    content: "{{ ps_result.stdout_lines }}"
+    dest: artifacts/{{ inventory_hostname }}/processlist-{{ansible_date_time.iso8601}}.txt
+
+- name: Make the process output human readible
+  local_action:
+    module: replace
+    path: artifacts/{{ inventory_hostname }}/processlist-{{ansible_date_time.iso8601}}.txt
+    before: ','
+    regexp: ','
+    replace: '\n'
+
+### NETWORK DATA ###
+- name: Get a list of all network connections (netstat -anp)
+  shell: netstat -anp
+  register: netstat_result
+
+- name: Write netstat results to artifacts on localhost
+  local_action:
+    module: copy
+    content: "{{ netstat_result.stdout_lines }}"
+    dest: artifacts/{{ inventory_hostname }}/netstat-{{ansible_date_time.iso8601}}.txt
+
+- name: Make the output human readible
+  local_action:
+    module: replace
+    path: artifacts/{{ inventory_hostname }}/netstat-{{ansible_date_time.iso8601}}.txt
+    before: ','
+    regexp: ','
+    replace: '\n'
+
+### LIST WEBSERVER FILES ###
+- name: Get a list of all files being served via apache (/var/www/html)
+  shell: ls -alhR /var/www/html
+  register: wwwfiles_result
+
+- name: Write list of www files to artifacts on localhost
+  local_action:
+    module: copy
+    content: "{{ wwwfiles_result.stdout_lines }}"
+    dest: artifacts/{{ inventory_hostname }}/wwwfiles-{{ansible_date_time.iso8601}}.txt
+
+- name: Make the output human readible
+  local_action:
+    module: replace
+    path: artifacts/{{ inventory_hostname }}/wwwfiles-{{ansible_date_time.iso8601}}.txt
+    before: ','
+    regexp: ','
+    replace: '\n'
+
+### DOWNLOAD WEBSERVER LOGS ###
+- name: List apache log files in /var/log/apache2
+  shell: (cd /var/log/apache2; find . -maxdepth 1 -type f) | cut -d'/' -f2
+  register: wwwlogs_to_copy
+
+- name: Download apache log files to artifacts on localhost
+  fetch:
+    src: /var/log/apache2/{{ item }}
+    dest: artifacts/
+  with_items:
+    - "{{ wwwlogs_to_copy.stdout_lines }}"
+
+### DOWNLOAD SYSTEM LOGS ###
+- name: List SYSTEM log files in /var/log/
+  shell: (cd /var/log; find . -maxdepth 1 -type f) | cut -d'/' -f2
+  register: systemlogs_to_copy
+
+- name: Download system log files to artifacts on localhost
+  become: yes
+  fetch:
+    src: /var/log/{{ item }}
+    dest: artifacts/
+  with_items:
+    - "{{ systemlogs_to_copy.stdout_lines }}"
+
+### DOWNLOAD BASH HISTORY ###
+- name: List all Users
+  shell: cat /etc/passwd | cut -d ':' -f1
+  register: bashlogs_to_copy
+
+- name: Write list of users to artifacts on localhost
+  local_action:
+    module: copy
+    content: "{{ bashlogs_to_copy.stdout_lines }}"
+    dest: artifacts/{{ inventory_hostname }}/userlist-{{ansible_date_time.iso8601}}.txt
+
+- name: Make the output human readible
+  local_action:
+    module: replace
+    path: artifacts/{{ inventory_hostname }}/userlist-{{ansible_date_time.iso8601}}.txt
+    before: ','
+    regexp: ','
+    replace: '\n'
+
+#- name: Download bash history files to artifacts on localhost
+#  become: yes
+#  fetch:
+#    src: /home/{{ item }}/.bash_history
+#    dest: artifacts/{{ inventory_hostname }}//{{ item }}_bash_history/
+#  with_items:
+#    - "{{ bashlogs_to_copy.stdout_lines }}"
+
+### DOWNLOAD WEBSERVER FILES ###
+- name: List apache data files
+  shell: (cd /var/www/html; find . -maxdepth 1 -type f) | cut -d'/' -f2
+  register: wwwfiles_to_copy
+
+- name: Download webserver data files to artifacts on localhost
+  fetch:
+    src: /var/www/html/{{ item }}
+    dest: artifacts/
+  with_items:
+    - "{{ wwwfiles_to_copy.stdout_lines }}"
+
+# Build this list as you go, re-run to go find all copies and collect them.
+- name: Download copy of all malware
+  fetch:
+    src: /var/log/www/html/{{ item }}
+    dest: artifacts/{{ inventory_hostname }}/malware/
+  with_items:
+    - malware.html
+    - metasploit.html
+    - poc.html
+    - badness.html
