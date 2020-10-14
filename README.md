@@ -1,6 +1,6 @@
 # ansible-live-response
 
-This is a sample of Ansible playbooks to use for DFIR. The playbooks were demonstrated in a presentation by Brian Olson at SANS DFIR Summit 2019 in Austin, TX (video link tbd).
+This is a sample of Ansible playbooks to use for DFIR. The playbooks were demonstrated in a presentation by Brian Olson at SANS DFIR Summit 2019 in Austin, TX (https://youtu.be/cdzXa3OjdHM).
 
 ## Section 1 - Create Test Lab
 1.1 Create a couple of small spot instances in AWS. Be sure to modify the variables in create-lab-aws.yml to suit your needs.
